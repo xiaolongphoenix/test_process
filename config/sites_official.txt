@@ -1,0 +1,10 @@
+.chinanews.com
+.cycnet.com
+.gmw.com
+.chinadaily.com.cn
+.xinhuanet.com
+.china.com.cn
+.people.com.cn
+gb.cri.cn
+.ce.cn
+.cntv.cn

@@ -1,0 +1,60 @@
+
+############################################################
+
+car         www.autohome.com.cn         2
+car         www.iautos.cn               5
+car         auto.gasgoo.com             5
+car         www.suvcn.cn                5
+car         www.chinabuses.com          5
+car         www.51auto.com              5
+
+###########################################################
+
+it          www.36kr.com                30
+it          www.huxiu.com               20
+it          www.techweb.com.cn          3
+it          www.admin5.com              20
+it          www.bianews.com             20
+it          www.chinaz.com              10
+it          www.cnbeta.com              5
+it          www.tmtpost.com             20 
+it          tech2ipo.com                20
+it          www.ebrun.com               30
+
+##########################################################
+
+economy     www.cs.com.cn                3
+economy     jjckb.xinhuanet.com          3
+economy     www.quanjing.com             3
+economy     www.21cbh.com                3
+economy     www.yicai.com                3
+economy     www.eeo.com.cn               3
+economy     www.ftchinese.com            3
+economy     www.chinatimes.cc            3
+economt     www.iceo.com.cn              3
+
+##########################################################
+
+militery      www.leiting001.com        10
+militery      www.qianyan001.com        10
+militery      www.thjunshi.com          10
+
+##########################################################
+
+science     www.yesky.com             5
+science     www.zol.com.cn            5
+science     www.techweb.com.cn        10
+science     www.cnetnews.com.cn       5
+science     www.cnbeta.com            10
+science     www.zdnet.com             5
+science     www.weiphone.com          10
+science     www.pconline.com.cn       5	
+
+##########################################################
+
+women       www.zhiyin.cn             10
+women       www.vogue.com.cn          10
+
+##########################################################
+
+

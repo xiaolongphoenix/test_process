@@ -1,0 +1,4 @@
+news_process
+news_process_main
+inotify
+*.o

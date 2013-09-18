@@ -1,0 +1,37 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+CalculatePageValue	news_process.cpp	/^int NewsProcess::CalculatePageValue(struct PageInfo* p_page_info)$/;"	f	class:news_process::NewsProcess
+DestoryMemory	news_process.cpp	/^void NewsProcess::DestoryMemory()$/;"	f	class:news_process::NewsProcess
+ExtractPageKeywords	news_process.cpp	/^int NewsProcess::ExtractPageKeywords(const string &key_join, struct PageInfo* p_temp_page)$/;"	f	class:news_process::NewsProcess
+GetKeywordFactor	news_process.cpp	/^int NewsProcess::GetKeywordFactor(const string& keyword)$/;"	f	class:news_process::NewsProcess
+Init	news_process.cpp	/^int NewsProcess::Init(const string& file_name)$/;"	f	class:news_process::NewsProcess
+InitPageSiteFactor	news_process.cpp	/^int NewsProcess::InitPageSiteFactor(struct PageInfo* p_page_info)$/;"	f	class:news_process::NewsProcess
+InitPageSiteRank	news_process.cpp	/^int NewsProcess::InitPageSiteRank(struct PageInfo* p_page_info)$/;"	f	class:news_process::NewsProcess
+InitSiteCount	news_process.cpp	/^void NewsProcess::InitSiteCount(map<string, int>& sites_count)$/;"	f	class:news_process::NewsProcess
+IsFiltedPage	news_process.cpp	/^bool NewsProcess::IsFiltedPage(const time_t &referenced_time,const struct PageInfo* p_page_info)$/;"	f	class:news_process::NewsProcess
+IsPageExist	news_process.cpp	/^bool NewsProcess::IsPageExist(PageInfo* p_page_info, set<string>& exsited_keywords)$/;"	f	class:news_process::NewsProcess
+IsReachTheThreshold	news_process.cpp	/^bool NewsProcess::IsReachTheThreshold(map<string, int>& sites_count,const string &site, const int &threshold)$/;"	f	class:news_process::NewsProcess
+IsSimilarTitle	news_process.cpp	/^bool NewsProcess::IsSimilarTitle(struct PageInfo* p_page_info, vector<string>& exsited_titles)$/;"	f	class:news_process::NewsProcess
+MakeDir	news_process.cpp	/^int NewsProcess::MakeDir(const string& dir_name)$/;"	f	class:news_process::NewsProcess
+NewsProcess	news_process.cpp	/^NewsProcess::NewsProcess()$/;"	f	class:news_process::NewsProcess
+OpenFileHandle	news_process.cpp	/^int NewsProcess::OpenFileHandle()$/;"	f	class:news_process::NewsProcess
+OutFileRename	news_process.cpp	/^void NewsProcess::OutFileRename()$/;"	f	class:news_process::NewsProcess
+OutputResult	news_process.cpp	/^int NewsProcess::OutputResult(const struct PageInfo* p_page_info, const int &count)$/;"	f	class:news_process::NewsProcess
+OutputTopnNews	news_process.cpp	/^void NewsProcess::OutputTopnNews(const int& top_n)$/;"	f	class:news_process::NewsProcess
+ParseInfileData	news_process.cpp	/^int NewsProcess::ParseInfileData()$/;"	f	class:news_process::NewsProcess
+ParsePage	news_process.cpp	/^int NewsProcess::ParsePage(const string& line, struct PageInfo *p_page_info)$/;"	f	class:news_process::NewsProcess
+PutPageToPageArray	news_process.cpp	/^void NewsProcess::PutPageToPageArray()$/;"	f	class:news_process::NewsProcess
+PutToExsitedKeywords	news_process.cpp	/^void NewsProcess::PutToExsitedKeywords(struct PageInfo* p_page_info, set<string>& exsited_keywords)$/;"	f	class:news_process::NewsProcess
+ReadConfig	news_process.cpp	/^int NewsProcess::ReadConfig(const string& config_filename, map<string, int>& map_name)$/;"	f	class:news_process::NewsProcess
+ReadConfig	news_process.cpp	/^int NewsProcess::ReadConfig(const string& config_filename, set<string>& set_name)$/;"	f	class:news_process::NewsProcess
+ReadConfig	news_process.cpp	/^int NewsProcess::ReadConfig(const string& config_filename, vector<string>& vec_name)$/;"	f	class:news_process::NewsProcess
+SortByFinalRank	news_process.cpp	/^bool SortByFinalRank(struct PageInfo* v1, struct PageInfo* v2)$/;"	f	namespace:news_process
+Start	news_process.cpp	/^int NewsProcess::Start(string file_name)$/;"	f	class:news_process::NewsProcess
+UpdateKwsInfoMap	news_process.cpp	/^int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)$/;"	f	class:news_process::NewsProcess
+main	news_process.cpp	/^int main(int argc, char *argv[])$/;"	f
+news_process	news_process.cpp	/^namespace news_process {$/;"	n	file:
+~NewsProcess	news_process.cpp	/^NewsProcess::~NewsProcess()$/;"	f	class:news_process::NewsProcess
