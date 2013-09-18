@@ -11,6 +11,7 @@
 #include<sys/stat.h>
 #include<sys/wait.h>
 #include<signal.h>
+#include<math.h>
 #include"string_fun.h"
 #include"pcre.h"
 #include"pcrecpp.h"
@@ -57,7 +58,16 @@ void print_page_array(vector<struct PageInfo*>& page_array)
 	cout << "-----------------------------------------------------"<<endl;
 	cout << "-----------------------------------------------------"<<endl;
 }
-
+void print_weighted_info(const string &kws, const struct KwsInfo &kws_info)
+{
+  cout << "------------------------------------------" << endl;
+  cout << "kws: " << kws << endl;
+  cout << "site_factor_sum: " << kws_info.site_factor_sum << endl;
+  cout << "keyword_factor: " << kws_info.keyword_factor << endl;
+  cout << "time_factor_avg: " << kws_info.time_factor_avg << endl;
+  cout << "site_numbers: " << kws_info.site_numbers << endl;
+  cout << "------------------------------------------" << endl;
+}
 NewsProcess::NewsProcess()
 {
 
@@ -79,6 +89,7 @@ int NewsProcess::Start(string file_name)
 		LOG(ERROR) << file_name + "is not .xml";
 		return -1;
 	}
+  sleep(2);  
 	//初始化NewsProcess各种变量中数据
 	if (this->Init(file_name) != 0)
 	{
@@ -89,7 +100,6 @@ int NewsProcess::Start(string file_name)
   {
     return -1;
   }
-  
   // 对kws_info_map_中的数据进行整合，放入page_array_
   PutPageToPageArray();
   //print_page_array(page_array_);
@@ -314,6 +324,7 @@ int NewsProcess::ReadConfig(const string& config_filename, map<string, int>& map
 int NewsProcess::ParseInfileData()
 {
 	string line;
+  int output = 0;
   // 按行提取输入文件，并解析数据
 	while(getline(this->infile_handle_, line))
 	{	
@@ -329,6 +340,14 @@ int NewsProcess::ParseInfileData()
 			// ParsePage时且分出的关键词小于指定数目
 			continue;
 		}
+    
+    //测试，只取12小时内的数据，防止隔天的数据对算法造成的影响
+    if(IsStaleData(p_temp_page->pdate)) 
+    {
+      output++;
+      continue;
+    }
+
     // 丢弃在black_sites 中的网站，并记录丢弃日志
     if((this->black_sites_).count(p_temp_page->site) != 0)
     {
@@ -350,6 +369,7 @@ int NewsProcess::ParseInfileData()
 		UpdateKwsInfoMap(p_temp_page);
 	}
 
+  cout << "output :  " << output << endl;
   return 0;
 }
 
@@ -547,6 +567,31 @@ int NewsProcess::ExtractPageKeywords(const string &key_join, struct PageInfo* p_
 	return 0;
 }
 
+//判断是否为过期数据
+bool NewsProcess::IsStaleData(const time_t &publish_date)
+{
+/*	struct tm *p_tm;
+	p_tm = localtime(&publish_date);
+	int pdate_day = p_tm->tm_mday;
+	time_t current_time = this->file_generated_time_;
+	p_tm = localtime(&current_time);
+	int current_day = p_tm->tm_mday;
+
+	// 7点之后只取当天今天的新闻计算
+	if(p_tm->tm_hour >= 7 && pdate_day != current_day)
+	{
+    continue;
+  }
+
+*/
+	time_t current_time = this->file_generated_time_;
+	double time_diff = current_time - publish_date;
+	if(time_diff > 12*3600) //只取6个小时内的数据进行计算
+	{
+    return true;
+  }
+  return false;
+}
 int NewsProcess::GetKeywordFactor(const string& keyword)
 {
   int keyword_factor = 0; 
@@ -727,7 +772,6 @@ int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
      }
 
      (map_iter->second).site_factor_sum    += p_page_info->site_factor; 
-     (map_iter->second).keyword_factor_sum += p_page_info->keyword_factor; 
      int time_factor_avg = (map_iter->second).time_factor_avg;
      int site_numbers = (map_iter->second).site_numbers;
      (map_iter->second).time_factor_avg = (time_factor_avg*site_numbers+p_page_info->time_factor)/(site_numbers+1);
@@ -739,7 +783,7 @@ int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
   {
     struct KwsInfo  temp_kws_info;
     temp_kws_info.site_factor_sum = p_page_info->site_factor;
-    temp_kws_info.keyword_factor_sum = p_page_info->keyword_factor;
+    temp_kws_info.keyword_factor = p_page_info->keyword_factor;
     temp_kws_info.time_factor_avg = p_page_info->time_factor;
     temp_kws_info.site_numbers = 1;
     temp_kws_info.page_array.push_back(p_page_info);
@@ -777,7 +821,13 @@ void NewsProcess::PutPageToPageArray()
   typedef vector<PageInfo*>::iterator VectorIter;
   for(MapIter iter_map = kws_info_map_.begin(); iter_map != kws_info_map_.end(); ++iter_map)
   {
-    int kws_value = (iter_map->second).site_factor_sum + (iter_map->second).keyword_factor_sum + (iter_map->second).time_factor_avg;
+    int site_factor = (iter_map->second).site_factor_sum ;
+    int keyword_factor = (iter_map->second).keyword_factor;
+    int site_numbers = (iter_map->second).site_numbers;
+    int time_factor_avg = (iter_map->second).time_factor_avg;
+    // 打印加权后信息
+    print_weighted_info(iter_map->first, iter_map->second);
+    int kws_value = site_factor + keyword_factor + log10(site_numbers) + time_factor_avg;
     for(VectorIter iter_vec = (*iter_map).second.page_array.begin(); iter_vec != (*iter_map).second.page_array.end(); ++iter_vec)
     {
       (*iter_vec)->final_rank = kws_value;
