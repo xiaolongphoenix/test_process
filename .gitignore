@@ -3,8 +3,8 @@ output/*
 log/*
 input.bak/*
 
-!input/
-!output/
-!log/
-!input.bak/
+!input
+!output
+!log
+!input.bak
 
