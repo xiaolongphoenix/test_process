@@ -102,7 +102,7 @@ int NewsProcess::Start(string file_name)
   }
   // 对kws_info_map_中的数据进行整合，放入page_array_
   PutPageToPageArray();
-  //print_page_array(page_array_);
+  print_page_array(page_array_);
   //输出前topn个结果
   int topn = 200;
   OutputTopnNews(topn);
@@ -570,20 +570,6 @@ int NewsProcess::ExtractPageKeywords(const string &key_join, struct PageInfo* p_
 //判断是否为过期数据
 bool NewsProcess::IsStaleData(const time_t &publish_date)
 {
-/*	struct tm *p_tm;
-	p_tm = localtime(&publish_date);
-	int pdate_day = p_tm->tm_mday;
-	time_t current_time = this->file_generated_time_;
-	p_tm = localtime(&current_time);
-	int current_day = p_tm->tm_mday;
-
-	// 7点之后只取当天今天的新闻计算
-	if(p_tm->tm_hour >= 7 && pdate_day != current_day)
-	{
-    continue;
-  }
-
-*/
 	time_t current_time = this->file_generated_time_;
 	double time_diff = current_time - publish_date;
 	if(time_diff > 12*3600) //只取6个小时内的数据进行计算
@@ -726,7 +712,7 @@ int NewsProcess::CalculateTimeFactor(struct PageInfo* p_page_info)
 		return -1;
 	}
 
-  const static time_t  referenced_time = 1134028003; // reddit 算法中的参照时间 
+  const static time_t  referenced_time = 1134028003; // 固定的参照时间 
 	struct tm *p_tm;
 	time_t current_time = this->file_generated_time_;
 	p_tm = localtime(&current_time);
@@ -736,7 +722,7 @@ int NewsProcess::CalculateTimeFactor(struct PageInfo* p_page_info)
   {
     return -1;
   }
-	p_page_info->time_factor = static_cast<int>(diff_time / 45000);
+	p_page_info->time_factor = diff_time/45000.0;
 	return 0;	
 }
 
@@ -808,9 +794,10 @@ bool SortByFinalRank(struct PageInfo* v1, struct PageInfo* v2)
   {
     return v1->site_rank > v2->site_rank;
   }
+  // 展现最早发的帖子
 	else if(v1->pdate != v2->pdate)
 	{
-		return v1->pdate > v2->pdate;
+		return v1->pdate < v2->pdate;
 	}
 }
 
@@ -824,10 +811,10 @@ void NewsProcess::PutPageToPageArray()
     int site_factor = (iter_map->second).site_factor_sum ;
     int keyword_factor = (iter_map->second).keyword_factor;
     int site_numbers = (iter_map->second).site_numbers;
-    int time_factor_avg = (iter_map->second).time_factor_avg;
+    double time_factor_avg = (iter_map->second).time_factor_avg;
     // 打印加权后信息
     print_weighted_info(iter_map->first, iter_map->second);
-    int kws_value = site_factor + keyword_factor + log10(site_numbers) + time_factor_avg;
+    double kws_value = log10(site_factor + keyword_factor + site_numbers) + time_factor_avg;
     for(VectorIter iter_vec = (*iter_map).second.page_array.begin(); iter_vec != (*iter_map).second.page_array.end(); ++iter_vec)
     {
       (*iter_vec)->final_rank = kws_value;
