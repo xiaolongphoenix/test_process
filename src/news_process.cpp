@@ -711,18 +711,14 @@ int NewsProcess::CalculateTimeFactor(struct PageInfo* p_page_info)
 	{
 		return -1;
 	}
-
-  const static time_t  referenced_time = 1134028003; // 固定的参照时间 
-	struct tm *p_tm;
 	time_t current_time = this->file_generated_time_;
-	p_tm = localtime(&current_time);
 	time_t publish_date = p_page_info->pdate;
-  double diff_time = publish_date - referenced_time;
+  double diff_time = current_time - publish_date;
   if(diff_time < 0)
   {
     return -1;
   }
-	p_page_info->time_factor = diff_time/45000.0;
+	p_page_info->time_factor = diff_time/60;
 	return 0;	
 }
 
@@ -814,7 +810,8 @@ void NewsProcess::PutPageToPageArray()
     double time_factor_avg = (iter_map->second).time_factor_avg;
     // 打印加权后信息
     print_weighted_info(iter_map->first, iter_map->second);
-    double kws_value = log10(site_factor + keyword_factor + site_numbers) + time_factor_avg;
+    double kws_value = (site_factor + keyword_factor + site_numbers)*2/(time_factor_avg+1);
+
     for(VectorIter iter_vec = (*iter_map).second.page_array.begin(); iter_vec != (*iter_map).second.page_array.end(); ++iter_vec)
     {
       (*iter_vec)->final_rank = kws_value;
