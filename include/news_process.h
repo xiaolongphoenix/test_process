@@ -46,8 +46,8 @@ struct PageInfo {
   int site_rank;                // 0 or 1  
   int site_factor;
   int keyword_factor;
-  int time_factor;
-  int final_rank;              // reflect page's final importance
+  double time_factor;
+  double final_rank;              // reflect page's final importance
   //parse title to keywords    
   string keywords[global::kMaxKeywordsNums]; 
   PageInfo(string key="")
@@ -62,9 +62,9 @@ struct PageInfo {
 struct KwsInfo
 {
   int site_factor_sum;
-  int keyword_factor_sum;
-  int time_factor_avg;
+  int keyword_factor;
   int site_numbers;
+  double time_factor_avg;
   vector<PageInfo*> page_array;
 };
 
@@ -83,6 +83,7 @@ class NewsProcess {
   int ParseInfileData();
   int ParsePage(const string& line, struct PageInfo *p_page_info);
   int ExtractPageKeywords(const string &key_join, struct PageInfo* p_temp_page);
+  bool IsStaleData(const time_t &publish_date);
   int GetKeywordFactor(const string& keyword);
   int InitPageSiteRank(struct PageInfo* p_page_info);
   int InitPageSiteFactor(struct PageInfo* p_page_info);

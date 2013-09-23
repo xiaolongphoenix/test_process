@@ -1,8 +1,8 @@
-www.yesky.com             5
-www.zol.com.cn            5
-www.techweb.com.cn        10
-www.cnetnews.com.cn       5
-www.cnbeta.com            10
-www.zdnet.com             5
-www.weiphone.com          10
-www.pconline.com.cn       5	
+www.yesky.com             30
+www.zol.com.cn            30
+www.techweb.com.cn        30
+www.cnetnews.com.cn       30
+www.cnbeta.com            30
+www.zdnet.com             30
+www.weiphone.com          30
+www.pconline.com.cn       30

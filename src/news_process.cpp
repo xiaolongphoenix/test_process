@@ -652,10 +652,10 @@ int NewsProcess::InitPageSiteFactor(struct PageInfo* p_page_info)
 
 	if("domestic" == this->classification_name_ || "social" == this->classification_name_ || "international" == this->classification_name_ || "economy" == this->classification_name_)
 	{
-		if(p_page_info->newsrank > 85)
-		{
-			p_page_info->site_factor = 3;
-		}
+	//	if(p_page_info->newsrank > 85)
+	//	{
+	//		p_page_info->site_factor = 3;
+	//	}
 	  if("economy" == this->classification_name_)
 	  {
 	  	if(this->hot_sites_economy_.count(site) != 0)
