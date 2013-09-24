@@ -32,9 +32,6 @@ using std::make_pair;
 using std::istream;
 
 // page's attribute
-// 比较网页的重要度时，先比较final_rank，如果相同再比较site_rank ，如果site_rank相同，则比较newsrank
-// 至于 site_factor,主要用于对文章发表数量加权，比如对一篇文章进行时间加权后，假设权值为4，如果
-// site_factor = 5 ，则经过最终加权，我们认为与这篇文章相同的文章一共发表了4*5=20次
 struct PageInfo {     
   string title;                    
   string kws;
@@ -65,7 +62,17 @@ struct KwsInfo
   int keyword_factor;
   int site_numbers;
   double time_factor_avg;
+  double kws_value; // affected by keyword_factor, site_numbers and time_factor_avg
+  string title; // just for log
   vector<PageInfo*> page_array;
+  int pdate_statistics[10];  // 在实际计算中此变量无用，只是为了统计pdate的时间段来调试参数
+  KwsInfo()
+  {
+    for(int i = 0; i < 10; ++i)
+    {
+     pdate_statistics[i] = 0;
+    }
+  }
 };
 
 class NewsProcess {
@@ -89,6 +96,8 @@ class NewsProcess {
   int InitPageSiteFactor(struct PageInfo* p_page_info);
   int CalculateTimeFactor(struct PageInfo* p_page_info);
   int UpdateKwsInfoMap(struct PageInfo* p_page_info);
+  double NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
+                                  const int& site_numbers, const int &time_factor_avg);
   void PutPageToPageArray();
   void InitSiteCount(map<string, int>& sites_count);
   bool IsFiltedPage(const time_t &referenced_time,const struct PageInfo* p_page_info);

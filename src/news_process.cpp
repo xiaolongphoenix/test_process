@@ -1,4 +1,3 @@
-//#define NDEBUG
 #include"news_process.h"
 #include<dirent.h>
 #include<stdio.h>
@@ -19,55 +18,13 @@
 
 namespace news_process {
 
-void print_page_struct(struct PageInfo* p_temp_page)
-{
-	cout << "-----------------------------------------------------"<<endl;
-	cout << endl;
-	cout << "p_temp_page->kws = "	<< p_temp_page->kws <<endl;
-	cout << "p_temp_page->url = "	<< p_temp_page->url <<endl;
-	cout << "p_temp_page->site = " << p_temp_page->site <<endl;
-	cout << "p_temp_page->pdate = " << p_temp_page->pdate <<endl;
-	cout <<"p_temp_page->newsrank = " << p_temp_page->newsrank <<endl;
-	cout <<"p_temp_page->site_rank =" << p_temp_page->site_rank <<endl;
-	cout <<"p_temp_page->site_factor =" << p_temp_page->site_factor <<endl;
-	cout <<"p_temp_page->keyword_factor =" << p_temp_page->keyword_factor <<endl;
-	cout <<"p_temp_page->time_factor =" << p_temp_page->time_factor <<endl;
-	cout <<"p_temp_page->final_rank =" << p_temp_page->final_rank <<endl;
-	cout <<"p_temp_page->title = " << p_temp_page->title << endl; 
-	cout <<"p_temp_page->keywords[0] = " << p_temp_page->keywords[0] << endl;
-	cout <<"p_temp_page->keywords[1] = " << p_temp_page->keywords[1] << endl;
-	cout <<"p_temp_page->keywords[2] = " << p_temp_page->keywords[2] << endl;
-	cout << endl; 	
-	cout << "-----------------------------------------------------"<<endl;
+// 辅助函数
+bool SortByFinalRank(struct PageInfo* v1, struct PageInfo* v2);
+bool SortByKwsValue(const pair<string, struct KwsInfo>& x, const pair<string, struct KwsInfo>& y);
+void print_page_array(vector<struct PageInfo*>& page_array);
+void print_page_struct(struct PageInfo* p_temp_page);
+void print_kws_info(map<string, struct KwsInfo> &kws_info);
 
-}
-void print_page_array(vector<struct PageInfo*>& page_array)
-{
-	cout << "-----------------------------------------------------"<<endl;
-	cout << "-----------------------------------------------------"<<endl;
-
-	int pos = 0;
-	for(vector<struct PageInfo*>::iterator iter = page_array.begin(); iter != page_array.end(); iter++,pos++)
-	{
-
-		cout << endl;
-		cout << "pos: " << pos <<endl;
-		print_page_struct(*iter);
-		cout << endl;
-	}
-	cout << "-----------------------------------------------------"<<endl;
-	cout << "-----------------------------------------------------"<<endl;
-}
-void print_weighted_info(const string &kws, const struct KwsInfo &kws_info)
-{
-  cout << "------------------------------------------" << endl;
-  cout << "kws: " << kws << endl;
-  cout << "site_factor_sum: " << kws_info.site_factor_sum << endl;
-  cout << "keyword_factor: " << kws_info.keyword_factor << endl;
-  cout << "time_factor_avg: " << kws_info.time_factor_avg << endl;
-  cout << "site_numbers: " << kws_info.site_numbers << endl;
-  cout << "------------------------------------------" << endl;
-}
 NewsProcess::NewsProcess()
 {
 
@@ -102,7 +59,8 @@ int NewsProcess::Start(string file_name)
   }
   // 对kws_info_map_中的数据进行整合，放入page_array_
   PutPageToPageArray();
-  print_page_array(page_array_);
+  print_kws_info(this->kws_info_map_);
+//  print_page_array(page_array_);
   //输出前topn个结果
   int topn = 200;
   OutputTopnNews(topn);
@@ -451,8 +409,10 @@ int NewsProcess::ParsePage(const string& line, struct PageInfo *p_page_info)
 			}
 			else if("title" == (*iter))
 			{
-				//将标题中&quot字符替换	
+				//将标题中特殊字符替换	
 				StringFun::replace_all(result, "&quot;", "\"");
+				StringFun::replace_all(result, "&lt;", "<");
+				StringFun::replace_all(result, "&gt;", ">");
 				p_page_info->title = result;
 			}
 			else if("kws" == (*iter))
@@ -768,33 +728,68 @@ int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
     temp_kws_info.keyword_factor = p_page_info->keyword_factor;
     temp_kws_info.time_factor_avg = p_page_info->time_factor;
     temp_kws_info.site_numbers = 1;
-    temp_kws_info.page_array.push_back(p_page_info);
+    //just for debug
+    temp_kws_info.title = p_page_info->title;
+   
+   temp_kws_info.page_array.push_back(p_page_info);
 	  this->kws_info_map_.insert(pair<string, struct KwsInfo>(kws, temp_kws_info));
   }
 	return 0;		
 
 }
 
-//vector排序函数
-bool SortByFinalRank(struct PageInfo* v1, struct PageInfo* v2)
+// 整个新闻排序算法的核心，使用了类似于hacker newers中的算法。
+double NewsProcess::NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
+                                const int& site_numbers, const int &time_factor_avg)
 {
-	if((v1->final_rank - v2->final_rank > 0.000001) || (v1->final_rank - v2->final_rank < -0.000001))
+    return (site_factor + keyword_factor + site_numbers)*2/(time_factor_avg+1);
+  
+}
+
+int FunctionForLog(const time_t& reference_time, const time_t& pdate)
+{
+  double time_diff = reference_time -pdate;
+  if (time_diff >= 11*3600)
   {
-		return v1->final_rank > v2->final_rank;
-	}
-	else if( v1->newsrank != v2->newsrank )
-	{
-		return v1->newsrank > v2->newsrank;
-	}
-  else if( v1->site_rank != v2->site_rank)
-  {
-    return v1->site_rank > v2->site_rank;
+    return 9;
   }
-  // 展现最早发的帖子
-	else if(v1->pdate != v2->pdate)
-	{
-		return v1->pdate < v2->pdate;
-	}
+  else if (time_diff >=9*3600)
+  {
+    return 8;
+  }
+  else if (time_diff >= 6*3600)
+  {
+    return 7;
+  }
+  else if (time_diff >= 4*3600)
+  {
+    return 6;
+  }
+  else if (time_diff >= 3*3600)
+  {
+    return 5;
+  }
+  else if (time_diff >= 2*3600)
+  {
+    return 4;
+  }
+  else if (time_diff >= 90*60)
+  {
+    return 3;
+  }
+  else if (time_diff >= 3600)
+  {
+    return 2;
+  }
+  else if (time_diff >= 30*60)
+  {
+    return 1;
+  }
+  else if (time_diff >= 0)
+  {
+    return 0;
+  }
+  return -1;
 }
 
 // 对kws_info_map_中的数据进行整合，放入page_array_
@@ -808,14 +803,26 @@ void NewsProcess::PutPageToPageArray()
     int keyword_factor = (iter_map->second).keyword_factor;
     int site_numbers = (iter_map->second).site_numbers;
     double time_factor_avg = (iter_map->second).time_factor_avg;
-    // 打印加权后信息
-    print_weighted_info(iter_map->first, iter_map->second);
-    double kws_value = (site_factor + keyword_factor + site_numbers)*2/(time_factor_avg+1);
+    // print_weighted_info(iter_map->first, iter_map->second);
 
+    // 算法的核心，类似于hacker news 中的算法
+    double kws_value = NewsRankingAlogrithmCore(site_factor, keyword_factor, site_numbers, 
+                                                time_factor_avg);
+    (iter_map->second).kws_value = kws_value; 
+
+    //将kws对应的所有Page放入page_array_ 以便后续排序计算
     for(VectorIter iter_vec = (*iter_map).second.page_array.begin(); iter_vec != (*iter_map).second.page_array.end(); ++iter_vec)
     {
       (*iter_vec)->final_rank = kws_value;
       page_array_.push_back(*iter_vec);
+
+      // 以下为了输出日志使用
+      int section = FunctionForLog(this->file_generated_time_, (*iter_vec)->pdate);
+      if(section >= 0)
+      {
+        (iter_map->second).pdate_statistics[section] += 1;
+      }
+
     }
   }
 
@@ -1146,6 +1153,111 @@ void NewsProcess::DestoryMemory()
 	{
 		delete(*iter);
 	}
+}
+
+// vector排序函数
+bool SortByFinalRank(struct PageInfo* v1, struct PageInfo* v2)
+{
+	if((v1->final_rank - v2->final_rank > 0.000001) || (v1->final_rank - v2->final_rank < -0.000001))
+  {
+		return v1->final_rank > v2->final_rank;
+	}
+	else if( v1->newsrank != v2->newsrank )
+	{
+		return v1->newsrank > v2->newsrank;
+	}
+  else if( v1->site_rank != v2->site_rank)
+  {
+    return v1->site_rank > v2->site_rank;
+  }
+	else 
+	{
+		return v1->pdate < v2->pdate;
+	}
+}
+// map排序函数(输出日志时使用)
+bool SortByKwsValue(const pair<string, struct KwsInfo>& x, const pair<string, struct KwsInfo>& y)
+{
+  return x.second.kws_value > y.second.kws_value;
+}
+void print_page_struct(struct PageInfo* p_temp_page)
+{
+	cout << "-----------------------------------------------------"<<endl;
+	cout << endl;
+	cout << "p_temp_page->kws = "	<< p_temp_page->kws <<endl;
+	cout << "p_temp_page->url = "	<< p_temp_page->url <<endl;
+	cout << "p_temp_page->site = " << p_temp_page->site <<endl;
+	cout << "p_temp_page->pdate = " << p_temp_page->pdate <<endl;
+	cout <<"p_temp_page->newsrank = " << p_temp_page->newsrank <<endl;
+	cout <<"p_temp_page->site_rank =" << p_temp_page->site_rank <<endl;
+	cout <<"p_temp_page->site_factor =" << p_temp_page->site_factor <<endl;
+	cout <<"p_temp_page->keyword_factor =" << p_temp_page->keyword_factor <<endl;
+	cout <<"p_temp_page->time_factor =" << p_temp_page->time_factor <<endl;
+	cout <<"p_temp_page->final_rank =" << p_temp_page->final_rank <<endl;
+	cout <<"p_temp_page->title = " << p_temp_page->title << endl; 
+	cout <<"p_temp_page->keywords[0] = " << p_temp_page->keywords[0] << endl;
+	cout <<"p_temp_page->keywords[1] = " << p_temp_page->keywords[1] << endl;
+	cout <<"p_temp_page->keywords[2] = " << p_temp_page->keywords[2] << endl;
+	cout << endl; 	
+	cout << "-----------------------------------------------------"<<endl;
+
+}
+void print_page_array(vector<struct PageInfo*>& page_array)
+{
+	cout << "-----------------------------------------------------"<<endl;
+	cout << "-----------------------------------------------------"<<endl;
+
+	int pos = 0;
+	for(vector<struct PageInfo*>::iterator iter = page_array.begin(); iter != page_array.end(); iter++,pos++)
+	{
+
+		cout << endl;
+		cout << "pos: " << pos <<endl;
+		print_page_struct(*iter);
+		cout << endl;
+	}
+	cout << "-----------------------------------------------------"<<endl;
+	cout << "-----------------------------------------------------"<<endl;
+}
+
+void print_kws_info(map<string, struct KwsInfo> &kws_info)
+{
+  typedef pair<string, struct KwsInfo> PAIR;
+  typedef map<string, struct KwsInfo>::iterator MapIter;
+  vector<PAIR> temp_vec;
+  for(MapIter iter_map = kws_info.begin(); iter_map != kws_info.end(); ++iter_map)
+  {
+    temp_vec.push_back(make_pair(iter_map->first, iter_map->second));
+  }
+
+  sort(temp_vec.begin(), temp_vec.end(), SortByKwsValue);
+
+  for(vector<PAIR>::iterator iter = temp_vec.begin(); iter != temp_vec.end(); ++iter)
+  {
+    string kws = iter->first;
+    int site_factor = (iter->second).site_factor_sum ;
+    int keyword_factor = (iter->second).keyword_factor;
+    int site_numbers = (iter->second).site_numbers;
+    double time_factor_avg = (iter->second).time_factor_avg;
+    double kws_value = (iter->second).kws_value;
+    string title = (iter->second).title;
+
+    cout << "------------------------------------------" << endl;
+    cout << "kws: " << kws << endl;
+    cout << "title: " << title << endl;
+    cout << "site_factor_sum: " << site_factor<< endl;
+    cout << "keyword_factor: " << keyword_factor << endl;
+    cout << "site_numbers: " << site_numbers << endl;
+    cout << "time_factor_avg: " << time_factor_avg << endl;
+    cout << "kws_value " << kws_value << endl;
+    cout <<"section: " ;
+    for(int i = 0; i < 10; i++)
+    {
+      cout << (iter->second).pdate_statistics[i] << " " ;
+    }
+    cout << endl;
+    cout << "------------------------------------------" << endl;
+  }
 }
 
 } // namespace news_process
