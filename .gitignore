@@ -2,4 +2,4 @@ input/*
 output/*
 log/*
 input.bak/*
-
+src/log

@@ -1,3 +1,4 @@
+#define NDEBUG
 #include"news_process.h"
 #include<dirent.h>
 #include<stdio.h>
@@ -742,7 +743,7 @@ int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
 double NewsProcess::NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
                                 const int& site_numbers, const int &time_factor_avg)
 {
-    return (site_factor + keyword_factor + site_numbers)*2/(time_factor_avg+1);
+    return (site_factor + keyword_factor + site_numbers)*3.0/powf(time_factor_avg,1.2);
   
 }
 
@@ -1241,7 +1242,23 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
     double time_factor_avg = (iter->second).time_factor_avg;
     double kws_value = (iter->second).kws_value;
     string title = (iter->second).title;
-
+    LOG(INFO) << "-----------------------------------";
+    LOG(INFO) << "kws: " << kws ;
+    LOG(INFO) << "title: " << title;
+    LOG(INFO) << "site_factor_sum: " << site_factor;
+    LOG(INFO) << "keyword_factor: " << keyword_factor ;
+    LOG(INFO) << "site_numbers: " << site_numbers;
+    LOG(INFO) << "time_factor_avg: " << time_factor_avg;
+    LOG(INFO) << "fenzi_total: " << (site_factor + keyword_factor + site_numbers)*3.0;
+    LOG(INFO) << "fenmu_total: " << powf(time_factor_avg,1.2) ;
+    LOG(INFO) << "kws_value " << kws_value ;
+    LOG(INFO) << "section: " ;
+    for(int i = 0; i < 10; i++)
+    {
+      LOG(INFO) << (iter->second).pdate_statistics[i] << " " ;
+    }
+   
+/*
     cout << "------------------------------------------" << endl;
     cout << "kws: " << kws << endl;
     cout << "title: " << title << endl;
@@ -1249,6 +1266,8 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
     cout << "keyword_factor: " << keyword_factor << endl;
     cout << "site_numbers: " << site_numbers << endl;
     cout << "time_factor_avg: " << time_factor_avg << endl;
+    cout << "fenzi_total: " << (site_factor + keyword_factor + site_numbers)*3.0 << endl;
+    cout << "fenmu_total: " << powf(time_factor_avg,1.2) << endl;
     cout << "kws_value " << kws_value << endl;
     cout <<"section: " ;
     for(int i = 0; i < 10; i++)
@@ -1257,6 +1276,8 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
     }
     cout << endl;
     cout << "------------------------------------------" << endl;
+*/
+
   }
 }
 
