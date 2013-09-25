@@ -1,20 +1,20 @@
-#define NDEBUG
-#include"news_process.h"
-#include<dirent.h>
-#include<stdio.h>
-#include<pthread.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<errno.h>
-#include<sys/types.h>
-#include<sys/inotify.h>
-#include<sys/stat.h>
-#include<sys/wait.h>
-#include<signal.h>
-#include<math.h>
-#include"string_fun.h"
-#include"pcre.h"
-#include"pcrecpp.h"
+#define NODEBUG
+#include "news_process.h"
+#include <dirent.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/inotify.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <math.h>
+#include "string_fun.h"
+#include "pcre.h"
+#include "pcrecpp.h"
 #include "glog/logging.h"
 
 namespace news_process {
@@ -40,6 +40,13 @@ NewsProcess::~NewsProcess()
 }
 int NewsProcess::Start(string file_name)
 {
+  using namespace global;
+	//初始化glog
+	google::InitGoogleLogging("news_process");
+	google::SetLogDestination(google::INFO,kLogDir.c_str());
+	google::SetLogDestination(google::ERROR,kLogDir.c_str());
+	google::InstallFailureSignalHandler();
+
   using namespace string_function;
 	// 只解析xml文件	
 	if (StringFun::get_file_extension(file_name) != "xml")
@@ -61,7 +68,6 @@ int NewsProcess::Start(string file_name)
   // 对kws_info_map_中的数据进行整合，放入page_array_
   PutPageToPageArray();
   print_kws_info(this->kws_info_map_);
-//  print_page_array(page_array_);
   //输出前topn个结果
   int topn = 200;
   OutputTopnNews(topn);
@@ -112,6 +118,7 @@ int NewsProcess::Init(const string& file_name)
   {
     return -1;
   }
+  LOG(INFO) << "classification: " << this->classification_name_;
   return 0;
 }
 
@@ -743,7 +750,7 @@ int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
 double NewsProcess::NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
                                 const int& site_numbers, const int &time_factor_avg)
 {
-    return (site_factor + keyword_factor + site_numbers)*3.0/powf(time_factor_avg,1.2);
+    return (site_factor + keyword_factor + site_numbers)*1.5/powf(time_factor_avg,1.2);
   
 }
 
@@ -912,8 +919,6 @@ void NewsProcess::OutputTopnNews(const int& top_n)
 	int threshold = 3;
 	int output_count = top_n;
 
-	//如果某个文章已经输出到文件中，假设此文章对应的标题分出的词为key1, key2, key3,则后续含有这三个关键词中任意一个关键
-	//词的文章都会被过滤，exsited_key_pos 就是保存含有已输出关键词的文章的在page_array_中的位置
 	set<string> exsited_keywords;
 	for (vector<struct PageInfo*>::iterator page_iter = this->page_array_.begin(); page_iter != this->page_array_.end(); page_iter++)
 	{
@@ -1124,22 +1129,22 @@ void NewsProcess::OutFileRename()
 
   //outfile重命名
 	string temp_outfile_name = this->outfile_name_ + ".bak";
-	ifstream test_handle(temp_outfile_name.c_str());
-	test_handle.seekg(0, test_handle.end);
-	if(test_handle.tellg() != 0)
-	{
+//	ifstream test_handle(temp_outfile_name.c_str());
+//	test_handle.seekg(0, test_handle.end);
+//	if(test_handle.tellg() != 0)
+//	{
 	  rename(temp_outfile_name.c_str(), this->outfile_name_.c_str());	
-	}
-	test_handle.close();
+//	}
+//	test_handle.close();
 
 	//hotrank文件重命名
-	string temp_hotrank_filename = this->hotrank_filename_ + ".bak";
-	test_handle.open(temp_hotrank_filename.c_str());
-	test_handle.seekg(0, test_handle.end);
-	if(test_handle.tellg() != 0)
-	{
+  	string temp_hotrank_filename = this->hotrank_filename_ + ".bak";
+//	test_handle.open(temp_hotrank_filename.c_str());
+//	test_handle.seekg(0, test_handle.end);
+//	if(test_handle.tellg() != 0)
+//	{
 	  rename(temp_hotrank_filename.c_str(), this->hotrank_filename_.c_str());	
-	}
+//	}
   using namespace global;
 	//将old_path中的.xml 文件移动至new_path（备份）
 	string old_path = kInputDir +"/" + this->file_name_;
@@ -1223,6 +1228,7 @@ void print_page_array(vector<struct PageInfo*>& page_array)
 
 void print_kws_info(map<string, struct KwsInfo> &kws_info)
 {
+  int count = 300;
   typedef pair<string, struct KwsInfo> PAIR;
   typedef map<string, struct KwsInfo>::iterator MapIter;
   vector<PAIR> temp_vec;
@@ -1232,7 +1238,6 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
   }
 
   sort(temp_vec.begin(), temp_vec.end(), SortByKwsValue);
-
   for(vector<PAIR>::iterator iter = temp_vec.begin(); iter != temp_vec.end(); ++iter)
   {
     string kws = iter->first;
@@ -1242,42 +1247,23 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
     double time_factor_avg = (iter->second).time_factor_avg;
     double kws_value = (iter->second).kws_value;
     string title = (iter->second).title;
-    LOG(INFO) << "-----------------------------------";
-    LOG(INFO) << "kws: " << kws ;
-    LOG(INFO) << "title: " << title;
-    LOG(INFO) << "site_factor_sum: " << site_factor;
-    LOG(INFO) << "keyword_factor: " << keyword_factor ;
-    LOG(INFO) << "site_numbers: " << site_numbers;
-    LOG(INFO) << "time_factor_avg: " << time_factor_avg;
-    LOG(INFO) << "fenzi_total: " << (site_factor + keyword_factor + site_numbers)*3.0;
-    LOG(INFO) << "fenmu_total: " << powf(time_factor_avg,1.2) ;
-    LOG(INFO) << "kws_value " << kws_value ;
-    LOG(INFO) << "section: " ;
-    for(int i = 0; i < 10; i++)
+    if(count > 0)
     {
-      LOG(INFO) << (iter->second).pdate_statistics[i] << " " ;
+      LOG(INFO) << "-----------------------------------";
+      LOG(INFO) << "kws: " << kws ;
+      LOG(INFO) << "title: " << title;
+      LOG(INFO) << "site_factor_sum: " << site_factor;
+      LOG(INFO) << "keyword_factor: " << keyword_factor ;
+      LOG(INFO) << "site_numbers: " << site_numbers;
+      LOG(INFO) << "time_factor_avg: " << time_factor_avg;
+      LOG(INFO) << "kws_value " << kws_value ;
+      LOG(INFO) << "section: " ;
+      for(int i = 0; i < 10; i++)
+      {
+        LOG(INFO) << (iter->second).pdate_statistics[i] << " " ;
+      }
+      --count;
     }
-   
-/*
-    cout << "------------------------------------------" << endl;
-    cout << "kws: " << kws << endl;
-    cout << "title: " << title << endl;
-    cout << "site_factor_sum: " << site_factor<< endl;
-    cout << "keyword_factor: " << keyword_factor << endl;
-    cout << "site_numbers: " << site_numbers << endl;
-    cout << "time_factor_avg: " << time_factor_avg << endl;
-    cout << "fenzi_total: " << (site_factor + keyword_factor + site_numbers)*3.0 << endl;
-    cout << "fenmu_total: " << powf(time_factor_avg,1.2) << endl;
-    cout << "kws_value " << kws_value << endl;
-    cout <<"section: " ;
-    for(int i = 0; i < 10; i++)
-    {
-      cout << (iter->second).pdate_statistics[i] << " " ;
-    }
-    cout << endl;
-    cout << "------------------------------------------" << endl;
-*/
-
   }
 }
 

@@ -15,9 +15,6 @@
 #include<signal.h>
 #include"global.h"
 #include "glog/logging.h"
-bool Keep_Running = true;
-
-void* news_process_task(void *arg);
 
 //判断某个文件类型是否为目录文件
 bool is_dir(const char *file)
@@ -27,12 +24,10 @@ bool is_dir(const char *file)
 		LOG(ERROR) << " file is NULL" ;
 		return false;
 	}
-	
 	struct stat buf;
 	if(stat(file, &buf) < 0)
 	{
 		LOG(ERROR) << "stat(): " ;
-		perror("stat():");
 	}
 	if(!S_ISDIR(buf.st_mode))
 	{
@@ -77,19 +72,18 @@ int check_dir(const char* dir_name)
 			}
 			else if(0 == pid)
 			{
-				chmod("/home/gaolong-1/news_process/src/news_process",S_IXUSR);
-				if(execl("./news_process", "news_process", dir_list->d_name, NULL) < 0)
+				chmod("../bin/news_process",S_IXUSR);
+				if(execl("../bin/news_process", "news_process", dir_list->d_name, NULL) < 0)
 				{
 					std::cerr << errno ;	
 					LOG(ERROR) << "execle error ";
 				}
 			}
 		}
-		
-			
 	}	
 	return 0;
 }
+
 // 创建用于监视目录文件的描述符 
 int create_inotify_fd()
 {
@@ -128,6 +122,7 @@ int event_check (int fd)
  *      by a signal that we catch */
   return select (FD_SETSIZE, &rfds, NULL, NULL, NULL);
 }
+
 //处理inotify事件
 int process_inotify_events(int fd)
 {
@@ -135,7 +130,7 @@ int process_inotify_events(int fd)
 	int length = 0;
 	char buffer[kBufLength];
 
-	while(Keep_Running)
+	while(true)
 	{	
 		if(event_check(fd) > 0)
 		{
@@ -155,8 +150,8 @@ int process_inotify_events(int fd)
 					}
 					else if(0 == pid)
 					{
-						chmod("/home/gaolong-1/news_process/src/news_process",S_IXUSR);
-						if(execl("./news_process", "news_process", event->name, NULL) < 0)
+						chmod("../bin/news_process",S_IXUSR);
+						if(execl("../bin/news_process", "news_process", event->name, NULL) < 0)
 						{
 							std::cerr << errno ;	
 							LOG(ERROR) << "execle error ";
@@ -167,7 +162,7 @@ int process_inotify_events(int fd)
 				}
 			}
 					
-		}
+		} 
 	}
 	
 	return 0;
@@ -202,8 +197,6 @@ int main(int argc, char *argv[])
 	// 监控目录内文件的变化
 	if(is_dir(kInputDir.c_str()))
 	{
-		
-			       
 		// 先遍历监控文件夹，检查里面是否有上次未处理完的文件(程序意外中止或者重启),将其重新放入工作队列
 
 		if(0 == check_dir(kInputDir.c_str()))
@@ -220,7 +213,6 @@ int main(int argc, char *argv[])
 				{
 					process_inotify_events(fd);  // 里面是循环语句
 				}
-						
 				inotify_rm_watch( fd, wd );
 				close( fd );
 			}
@@ -228,8 +220,6 @@ int main(int argc, char *argv[])
 		}
 		
 	}	
-	
-
 	return 0;
 }
 
