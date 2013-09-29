@@ -1,4 +1,4 @@
-#define NODEBUG
+#define NDEBUG
 #include "news_process.h"
 #include <dirent.h>
 #include <stdio.h>
@@ -686,7 +686,7 @@ int NewsProcess::CalculateTimeFactor(struct PageInfo* p_page_info)
   {
     return -1;
   }
-	p_page_info->time_factor = diff_time/60;
+	p_page_info->time_factor = diff_time/800;
 	return 0;	
 }
 
@@ -750,7 +750,7 @@ int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
 double NewsProcess::NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
                                 const int& site_numbers, const int &time_factor_avg)
 {
-    return (site_factor + keyword_factor + site_numbers)*1.5/powf(time_factor_avg,1.2);
+    return (site_factor + keyword_factor + site_numbers)*1.0/powf((time_factor_avg+2),1.5);
   
 }
 
@@ -832,6 +832,15 @@ void NewsProcess::PutPageToPageArray()
       }
 
     }
+
+    int page_score = 0;
+    // just for argument debug
+    for(int i = 0; i < 10; ++i)
+    {
+      page_score += (iter_map->second).pdate_statistics[i]*(10-i); 
+    }
+    page_score += keyword_factor + site_factor;
+    (iter_map->second).page_score = page_score;
   }
 
   //对vector数组进行排序
@@ -1252,6 +1261,7 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
       LOG(INFO) << "-----------------------------------";
       LOG(INFO) << "kws: " << kws ;
       LOG(INFO) << "title: " << title;
+      LOG(INFO) << "page_score: " << (iter->second).page_score;
       LOG(INFO) << "site_factor_sum: " << site_factor;
       LOG(INFO) << "keyword_factor: " << keyword_factor ;
       LOG(INFO) << "site_numbers: " << site_numbers;

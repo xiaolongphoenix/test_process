@@ -63,6 +63,7 @@ struct KwsInfo
   int site_numbers;
   double time_factor_avg;
   double kws_value; // affected by keyword_factor, site_numbers and time_factor_avg
+  int page_score; // just for argument debug 
   string title; // just for log
   vector<PageInfo*> page_array;
   int pdate_statistics[10];  // 在实际计算中此变量无用，只是为了统计pdate的时间段来调试参数
