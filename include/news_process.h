@@ -64,8 +64,6 @@ struct KwsInfo
   double time_factor_avg;
   double kws_value; // affected by keyword_factor, site_numbers and time_factor_avg
   int page_score; // just for argument debug 
-  string title; // just for log
-  vector<PageInfo*> page_array;
   int pdate_statistics[10];  // 在实际计算中此变量无用，只是为了统计pdate的时间段来调试参数
   KwsInfo()
   {
@@ -99,7 +97,7 @@ class NewsProcess {
   int UpdateKwsInfoMap(struct PageInfo* p_page_info);
   double NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
                                   const int& site_numbers, const int &time_factor_avg);
-  void PutPageToPageArray();
+  void CalculatePageFinalRank();
   void InitSiteCount(map<string, int>& sites_count);
   bool IsFiltedPage(const time_t &referenced_time,const struct PageInfo* p_page_info);
   bool IsReachTheThreshold(map<string, int>&sites_count,const string &site, const int &threshold);

@@ -55,7 +55,7 @@ int NewsProcess::Start(string file_name)
 		return -1;
 	}
   sleep(2);  
-	//初始化NewsProcess各种变量中数据
+	// 初始化NewsProcess各种变量中数据
 	if (this->Init(file_name) != 0)
 	{
 		return -1;
@@ -65,8 +65,7 @@ int NewsProcess::Start(string file_name)
   {
     return -1;
   }
-  // 对kws_info_map_中的数据进行整合，放入page_array_
-  PutPageToPageArray();
+  CalculatePageFinalRank();
   print_kws_info(this->kws_info_map_);
   //输出前topn个结果
   int topn = 200;
@@ -333,6 +332,7 @@ int NewsProcess::ParseInfileData()
     CalculateTimeFactor(p_temp_page);
 		//更新kws->PageInfo 信息
 		UpdateKwsInfoMap(p_temp_page);
+    this->page_array_.push_back(p_temp_page);
 	}
 
   cout << "output :  " << output << endl;
@@ -483,27 +483,11 @@ int NewsProcess::ExtractPageKeywords(const string &key_join, struct PageInfo* p_
 		return -1;
 	}
 
-
-  // 计算keyword_factor  取keword_factor绝对值最大的
-  // 
-  int max_factor = 0;
   string keyword_join = "";
 	if(kMaxKeywordsNums < keywords_count)
 	{
 		for(int i = 0; i != kMaxKeywordsNums; i++ )
 		{
-      int temp_factor = GetKeywordFactor(keywords[i]);
-      if (max_factor >= 0 && temp_factor > max_factor)
-      {
-        p_temp_page->keyword_factor = temp_factor;
-        max_factor = temp_factor;
-      }
-      else if (max_factor <= 0 && temp_factor < max_factor)
-      {
-        p_temp_page->keyword_factor = temp_factor;
-        max_factor = temp_factor;
-      }
-
 			p_temp_page->keywords[i] = keywords[i];
       keyword_join += keywords[i]+"|";
 		}
@@ -512,17 +496,6 @@ int NewsProcess::ExtractPageKeywords(const string &key_join, struct PageInfo* p_
 	{
 		for(int i = 0; i != keywords_count; i++ )
 		{
-      int temp_factor = GetKeywordFactor(keywords[i]);
-      if (max_factor >= 0 && temp_factor > max_factor)
-      {
-        p_temp_page->keyword_factor = temp_factor;
-        max_factor = temp_factor;
-      }
-      else if (max_factor <= 0 && temp_factor < max_factor)
-      {
-        p_temp_page->keyword_factor = temp_factor;
-        max_factor = temp_factor;
-      }
 			p_temp_page->keywords[i] = keywords[i];
       keyword_join += keywords[i]+"|";
 		}
@@ -686,72 +659,8 @@ int NewsProcess::CalculateTimeFactor(struct PageInfo* p_page_info)
   {
     return -1;
   }
-	p_page_info->time_factor = diff_time/800;
+	p_page_info->time_factor = diff_time/60;
 	return 0;	
-}
-
-// 统计kws对应的Page信息
-// 如果同一站点有多篇相同文章，则只保留pdate最大的一篇，其他的均忽略
-int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
-{
-  typedef vector<PageInfo*>::iterator PageIter;
-  string kws = p_page_info->kws;
-  map<string, struct KwsInfo>::iterator map_iter = this->kws_info_map_.find(kws);
-  if(map_iter != this->kws_info_map_.end()) // kws already exists
-  {
-    for(PageIter page_iter = (map_iter->second).page_array.begin(); page_iter != (map_iter->second).page_array.end(); ++page_iter) 
-    {
-		  // 同一site出现多篇相同文章,,只统计一篇,以pdate最大的为准			    
-		  if((*page_iter)->site == p_page_info->site)
-		  {
-		  	string outline = "filter_info\t";
-		  	outline += this->classification_name_ + "\t";
-		  	outline += this->file_generated_time_str_ + "\t"; 
-		  	outline += "same_kws_one_site\t";
-		  	outline += p_page_info->site + "\t" ;
-		  	outline += p_page_info->url + "\t" ;
-		  	outline += p_page_info->title + "\t" ;
-		  	DLOG(INFO) << outline;
-        
-			  if((*page_iter)->pdate < p_page_info->pdate)
-			  {
-			  	*page_iter = p_page_info;
-			  }
-        return 0;
-      }
-     }
-
-     (map_iter->second).site_factor_sum    += p_page_info->site_factor; 
-     int time_factor_avg = (map_iter->second).time_factor_avg;
-     int site_numbers = (map_iter->second).site_numbers;
-     (map_iter->second).time_factor_avg = (time_factor_avg*site_numbers+p_page_info->time_factor)/(site_numbers+1);
-     (map_iter->second).site_numbers += 1; 
-     (map_iter->second).page_array.push_back(p_page_info);
-
-  }
-  else // kws not exists
-  {
-    struct KwsInfo  temp_kws_info;
-    temp_kws_info.site_factor_sum = p_page_info->site_factor;
-    temp_kws_info.keyword_factor = p_page_info->keyword_factor;
-    temp_kws_info.time_factor_avg = p_page_info->time_factor;
-    temp_kws_info.site_numbers = 1;
-    //just for debug
-    temp_kws_info.title = p_page_info->title;
-   
-   temp_kws_info.page_array.push_back(p_page_info);
-	  this->kws_info_map_.insert(pair<string, struct KwsInfo>(kws, temp_kws_info));
-  }
-	return 0;		
-
-}
-
-// 整个新闻排序算法的核心，使用了类似于hacker newers中的算法。
-double NewsProcess::NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
-                                const int& site_numbers, const int &time_factor_avg)
-{
-    return (site_factor + keyword_factor + site_numbers)*1.0/powf((time_factor_avg+2),1.5);
-  
 }
 
 int FunctionForLog(const time_t& reference_time, const time_t& pdate)
@@ -800,49 +709,87 @@ int FunctionForLog(const time_t& reference_time, const time_t& pdate)
   return -1;
 }
 
+// 统计keyword对应的Page信息
+int NewsProcess::UpdateKwsInfoMap(struct PageInfo* p_page_info)
+{
+  typedef vector<PageInfo*>::iterator PageIter;
+  for(int i = 0; i != global::kMaxKeywordsNums; ++i)
+  {
+    string keyword = p_page_info->keywords[i];
+    if(keyword == "")
+    {
+      return 0;
+    }
+    map<string, struct KwsInfo>::iterator map_iter = this->kws_info_map_.find(keyword);
+    if(map_iter != this->kws_info_map_.end()) // kws already exists
+    {
+      (map_iter->second).site_factor_sum    += p_page_info->site_factor; 
+      int time_factor_avg = (map_iter->second).time_factor_avg;
+      int site_numbers = (map_iter->second).site_numbers;
+      (map_iter->second).time_factor_avg = (time_factor_avg*site_numbers+p_page_info->time_factor)/(site_numbers+1); // time_factor average
+      (map_iter->second).site_numbers += 1; 
+
+      //just for argument debug
+      int section = FunctionForLog(this->file_generated_time_, p_page_info->pdate);
+      (map_iter->second).pdate_statistics[section]++;
+      (map_iter->second).kws_value = NewsRankingAlogrithmCore((map_iter->second).site_factor_sum, ((map_iter->second).keyword_factor), site_numbers, (map_iter->second).time_factor_avg);
+    
+    }
+    else // kws not exists
+    {
+      struct KwsInfo  temp_kws_info;
+      temp_kws_info.site_factor_sum = p_page_info->site_factor;
+      temp_kws_info.keyword_factor = GetKeywordFactor(keyword);
+      temp_kws_info.time_factor_avg = p_page_info->time_factor;
+      temp_kws_info.site_numbers = 1;
+
+      //just for argument debug
+      int section = FunctionForLog(this->file_generated_time_, p_page_info->pdate);
+      temp_kws_info.pdate_statistics[section]++;
+	    this->kws_info_map_.insert(pair<string, struct KwsInfo>(keyword, temp_kws_info));
+    }
+
+      
+  }
+	return 0;		
+
+}
+
+// 整个新闻排序算法的核心，使用了类似于hacker newers中的算法。
+double NewsProcess::NewsRankingAlogrithmCore(const int& site_factor, const int& keyword_factor,
+                                const int& site_numbers, const int &time_factor_avg)
+{
+    return (site_factor + keyword_factor + site_numbers)*0.6/powf((time_factor_avg),1.2);
+  
+}
+
+
 // 对kws_info_map_中的数据进行整合，放入page_array_
-void NewsProcess::PutPageToPageArray()
+void NewsProcess::CalculatePageFinalRank()
 {
   typedef map<string, struct KwsInfo>::iterator MapIter;
   typedef vector<PageInfo*>::iterator VectorIter;
-  for(MapIter iter_map = kws_info_map_.begin(); iter_map != kws_info_map_.end(); ++iter_map)
+  for(VectorIter vec_iter = page_array_.begin(); vec_iter != page_array_.end(); ++vec_iter)
   {
-    int site_factor = (iter_map->second).site_factor_sum ;
-    int keyword_factor = (iter_map->second).keyword_factor;
-    int site_numbers = (iter_map->second).site_numbers;
-    double time_factor_avg = (iter_map->second).time_factor_avg;
-    // print_weighted_info(iter_map->first, iter_map->second);
-
-    // 算法的核心，类似于hacker news 中的算法
-    double kws_value = NewsRankingAlogrithmCore(site_factor, keyword_factor, site_numbers, 
-                                                time_factor_avg);
-    (iter_map->second).kws_value = kws_value; 
-
-    //将kws对应的所有Page放入page_array_ 以便后续排序计算
-    for(VectorIter iter_vec = (*iter_map).second.page_array.begin(); iter_vec != (*iter_map).second.page_array.end(); ++iter_vec)
+    double final_rank = 1.0;  
+    for(int i = 0; i < global::kMaxKeywordsNums; ++i)
     {
-      (*iter_vec)->final_rank = kws_value;
-      page_array_.push_back(*iter_vec);
-
-      // 以下为了输出日志使用
-      int section = FunctionForLog(this->file_generated_time_, (*iter_vec)->pdate);
-      if(section >= 0)
+      string keyword = (*vec_iter)->keywords[i];
+      if(keyword == "")
       {
-        (iter_map->second).pdate_statistics[section] += 1;
+        break;
       }
-
+      int site_factor = kws_info_map_[keyword].site_factor_sum ;
+      int keyword_factor = kws_info_map_[keyword].keyword_factor;
+      int site_numbers = kws_info_map_[keyword].site_numbers;
+      double time_factor_avg = kws_info_map_[keyword].time_factor_avg;
+      // 算法的核心，类似于hacker news 中的算法
+      double kws_value = NewsRankingAlogrithmCore(site_factor, keyword_factor, site_numbers, time_factor_avg);
+      final_rank += kws_value; 
     }
+    (*vec_iter)->final_rank = final_rank;
 
-    int page_score = 0;
-    // just for argument debug
-    for(int i = 0; i < 10; ++i)
-    {
-      page_score += (iter_map->second).pdate_statistics[i]*(10-i); 
-    }
-    page_score += keyword_factor + site_factor;
-    (iter_map->second).page_score = page_score;
   }
-
   //对vector数组进行排序
 	std::sort(page_array_.begin(), page_array_.end(), SortByFinalRank);	
 
@@ -1237,7 +1184,7 @@ void print_page_array(vector<struct PageInfo*>& page_array)
 
 void print_kws_info(map<string, struct KwsInfo> &kws_info)
 {
-  int count = 300;
+  int count = 2000;
   typedef pair<string, struct KwsInfo> PAIR;
   typedef map<string, struct KwsInfo>::iterator MapIter;
   vector<PAIR> temp_vec;
@@ -1255,12 +1202,10 @@ void print_kws_info(map<string, struct KwsInfo> &kws_info)
     int site_numbers = (iter->second).site_numbers;
     double time_factor_avg = (iter->second).time_factor_avg;
     double kws_value = (iter->second).kws_value;
-    string title = (iter->second).title;
     if(count > 0)
     {
       LOG(INFO) << "-----------------------------------";
       LOG(INFO) << "kws: " << kws ;
-      LOG(INFO) << "title: " << title;
       LOG(INFO) << "page_score: " << (iter->second).page_score;
       LOG(INFO) << "site_factor_sum: " << site_factor;
       LOG(INFO) << "keyword_factor: " << keyword_factor ;
